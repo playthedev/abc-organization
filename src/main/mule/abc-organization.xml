@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="23c8e810-6ece-4865-bcf7-3b5bf484ef0a" >
+		<http:listener-connection host="0.0.0.0" port="8082" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="f8bac5f6-de21-4360-828f-431de6c8e455" >
+		<db:generic-connection url="jdbc:postgresql://localhost:5432/ABC" driverClassName="org.postgresql.Driver" user="postgres" password="postgres" />
+	</db:config>
+	<flow name="getEmployeeFlow">
+    <http:listener config-ref="HTTP_Listener_config" path="/employee/{id}" />
+    <db:select config-ref="Database_Config" doc:name="Database Select">
+        <db:sql><![CDATA[SELECT * FROM Empoloyee WHERE E_ID = :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+id:attributes.uriParams.id as Number
+}]]]></db:input-parameters>
+    
+</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="06cce571-441b-4ae8-a6c4-0905db99d8b8" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+</flow>
+
+<flow name="postEmployeeFlow">
+    <http:listener config-ref="HTTP_Listener_config" path="/employee" allowedMethods="POST"/>
+    <db:insert config-ref="Database_Config" doc:name="Database Insert">
+        <db:sql><![CDATA[INSERT INTO Empoloyee (E_NAME, E_SALARY) VALUES (:name, :salary)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+ name:payload.name,
+ salary: payload.salary
+}]]]></db:input-parameters>
+    
+</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="2af61942-b96f-4a9a-b161-3b72b325c991" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+</flow>
+</mule>
